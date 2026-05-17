@@ -246,6 +246,11 @@ Solution: change the GTK theme to "Raleigh" (e.g. in Fedora use the "GTK+ Appear
 ImPPG source code and binaries (x86-64) for MS Windows and several Linux distributions can be downloaded from:
     https://github.com/GreatAttractor/imppg/releases
 
+A self-contained macOS (Apple Silicon) build is available from this fork:
+    https://github.com/uotw/imppg-1/releases/tag/v2.1.0-macOS-tahoe
+
+Open the DMG and drag `ImPPG.app` to `Applications`. No Homebrew install is required on the target Mac — all dependencies are bundled. Built on macOS Tahoe 26.3 (M3 Max), smoke-tested on M1.
+
 
 ----------------------------------------
 ## 12. Building from source code
