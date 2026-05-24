@@ -58,7 +58,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG='${{ steps.detect.outputs.tag }}'
-          if gh release list --limit 100 --json tagName --jq '.[].tagName' \
+          # --repo is explicit because we added the upstream remote earlier,
+          # which confuses gh's auto-repo-resolution.
+          if gh release list --repo "${{ github.repository }}" \
+                --limit 100 --json tagName --jq '.[].tagName' \
               | grep -qE "^${TAG}-macos-"; then
             echo "Already built ${TAG} — nothing to do."
             echo "needs_build=false" >> "$GITHUB_OUTPUT"
@@ -78,7 +81,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run release-macos.yml
+          gh workflow run release-macos.yml --repo "${{ github.repository }}"
 
       - name: Open issue on failure
         if: failure()
@@ -86,17 +89,23 @@ jobs:
         with:
           script: |
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Upstream check failed: run #${context.runNumber}`,
-              body: [
-                `The scheduled upstream-tag check workflow failed.`,
-                `Run: ${runUrl}`,
-                ``,
-                `Likely causes:`,
-                `- Rebase conflict (a new upstream commit touched files our pipeline commits also touch)`,
-                `- Push rejected (GITHUB_TOKEN may lack permission if pipeline commit modifies workflow files; switch to a PAT in repo secrets)`,
-                `- Upstream repo unreachable or restructured`,
-              ].join('\n'),
-            });
+            try {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Upstream check failed: run #${context.runNumber}`,
+                body: [
+                  `The scheduled upstream-tag check workflow failed.`,
+                  `Run: ${runUrl}`,
+                  ``,
+                  `Likely causes:`,
+                  `- Rebase conflict (a new upstream commit touched files our pipeline commits also touch)`,
+                  `- Push rejected (GITHUB_TOKEN may lack permission if pipeline commit modifies workflow files; switch to a PAT in repo secrets)`,
+                  `- Upstream repo unreachable or restructured`,
+                ].join('\n'),
+              });
+            } catch (e) {
+              // Issues may be disabled on the fork; don't fail the workflow over it.
+              core.warning(`Could not open failure issue: ${e.message}`);
+              core.warning(`Workflow failed; see ${runUrl}`);
+            }
