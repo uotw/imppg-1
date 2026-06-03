@@ -48,6 +48,12 @@ class c_NumericalCtrl: public wxPanel, IDelayedAction
     double m_SliderRangeFactor; ///< TODO: write an explanation
     bool m_AutoAdjustNumSteps;
 
+    /// If true, dragging the slider only updates the displayed value; the action
+    /// (EVT_NUMERICAL_CTRL) is fired once when the slider is released. Use for
+    /// controls driving an expensive operation (e.g. L–R deconvolution) that
+    /// should not run on every intermediate value while sliding.
+    bool m_DeferActionUntilSliderRelease;
+
     wxStaticText m_Label;
     wxSlider* m_SliderCtrl{nullptr};
     wxSpinCtrlDouble* m_SpinCtrl{nullptr};
@@ -56,6 +62,7 @@ class c_NumericalCtrl: public wxPanel, IDelayedAction
     {
         bool grabbed;
         double grabbedVal;
+        bool actionPending; ///< A deferred action is awaiting the slider's release.
     } Scrolling;
 
     void OnValueChanged();
@@ -83,7 +90,9 @@ public:
         int numSliderSteps, ///< Number of slider steps
         std::optional<wxString> toolTip,
         bool autoAdjustNumSteps = false, ///< If true, the slider will always have 1 step per pixel (adjusted after every resize)
-        unsigned updateEvtDelay = 0 ///< Delay in milliseconds between sending subsequent EVT_NUMERICAL_CTRL events
+        unsigned updateEvtDelay = 0, ///< Delay in milliseconds between sending subsequent EVT_NUMERICAL_CTRL events
+        /// If true, defer the action (EVT_NUMERICAL_CTRL) until the slider is released instead of firing it while dragging.
+        bool deferActionUntilSliderRelease = false
         );
 
     double GetValue() const

@@ -56,12 +56,15 @@ c_NumericalCtrl::c_NumericalCtrl(wxWindow* parent, int id,
     int numSliderSteps, ///< Number of slider steps
     std::optional<wxString> toolTip,
     bool autoAdjustNumSteps, ///< If true, the slider will always have 1 step per pixel (adjusted after every resize)
-    unsigned updateEvtDelay ///< Delay in milliseconds between sending subsequent EVT_NUMERICAL_CTRL events
+    unsigned updateEvtDelay, ///< Delay in milliseconds between sending subsequent EVT_NUMERICAL_CTRL events
+    bool deferActionUntilSliderRelease ///< If true, fire the action only when the slider is released
 )
-: wxPanel(parent, id), m_Value(initialVal), m_SliderRangeFactor(sliderRangeFactor), m_AutoAdjustNumSteps(autoAdjustNumSteps)
+: wxPanel(parent, id), m_Value(initialVal), m_SliderRangeFactor(sliderRangeFactor), m_AutoAdjustNumSteps(autoAdjustNumSteps),
+  m_DeferActionUntilSliderRelease(deferActionUntilSliderRelease)
 {
     SetActionDelay(updateEvtDelay);
     Scrolling.grabbed = false;
+    Scrolling.actionPending = false;
 
     wxSizer* szTop = new wxBoxSizer(wxVERTICAL);
 
@@ -114,6 +117,13 @@ void c_NumericalCtrl::OnSliderEndScroll(wxScrollEvent&)
 {
     Scrolling.grabbed = false;
     m_SliderCtrl->SetValue((m_SliderCtrl->GetMax() + 1)/2);
+
+    // Fire the action that was withheld while the slider was being dragged.
+    if (Scrolling.actionPending)
+    {
+        Scrolling.actionPending = false;
+        DoPerformAction();
+    }
 }
 
 
@@ -137,7 +147,18 @@ void c_NumericalCtrl::OnSliderScroll(wxScrollEvent& event)
     double newVal = Scrolling.grabbedVal * std::pow(m_SliderRangeFactor, 2.0 * m_SliderCtrl->GetValue() / m_SliderCtrl->GetMax() - 1);
 
     m_SpinCtrl->SetValue(newVal);
-    OnValueChanged();
+
+    if (m_DeferActionUntilSliderRelease)
+    {
+        // Update the displayed value live, but withhold the (expensive) action
+        // until the slider is released; see OnSliderEndScroll().
+        m_Value = m_SpinCtrl->GetValue();
+        Scrolling.actionPending = true;
+    }
+    else
+    {
+        OnValueChanged();
+    }
 }
 
 #ifdef __WXMSW__

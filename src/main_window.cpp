@@ -1322,7 +1322,8 @@ wxPanel* c_MainWindow::CreateLucyRichardsonControlsPanel(wxWindow* parent)
     wxSizer* szTop = new wxBoxSizer(wxVERTICAL);
 
     szTop->Add(m_Ctrls.lrSigma = new c_NumericalCtrl(result, ID_LucyRichardsonSigma, _("Sigma:"), 0.5, MAX_GAUSSIAN_SIGMA,
-        Default::LR_SIGMA, 0.05, 4, 2, 100, std::nullopt, true, maxfreq ? 1000/maxfreq : 0),
+        Default::LR_SIGMA, 0.05, 4, 2, 100, std::nullopt, true, maxfreq ? 1000/maxfreq : 0,
+        /* deferActionUntilSliderRelease = */ true),
         0, wxGROW | wxALL, BORDER);
 
     wxSizer *szIters = new wxBoxSizer(wxHORIZONTAL);
