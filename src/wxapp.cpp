@@ -93,6 +93,12 @@ bool c_MyApp::OnInit()
     }
     wxFileTranslationsLoader::AddCatalogLookupPathPrefix("./lang");
     m_Locale.Init(m_Language);
+#ifdef __APPLE__
+    // On macOS 27+ natively rendered controls crash when LC_NUMERIC uses a comma as the
+    // decimal separator (see wxWidgets issue #26977). wxLocale::Init() above calls
+    // setlocale(LC_ALL), so reset LC_NUMERIC. Translations use LC_MESSAGES and still work.
+    setlocale(LC_NUMERIC, "C");
+#endif
     m_Locale.AddCatalog("wxstd3"); ///< The wxWidgets catalog (translated captions of standard menu items like "Open", control buttons like "Browse" etc.)
     m_Locale.AddCatalog("imppg");
 
